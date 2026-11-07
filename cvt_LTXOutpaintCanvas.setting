@@ -1,0 +1,252 @@
+-- cvt_LTXOutpaintCanvas_v1.01
+-- Created by Chadwick / Creative Video Tips (https://creativevideotips.com)
+-- Part of LTX Inpaint Still, under the Mozilla Public License 2.0.
+-- Sets up outpainting. Image -> this node -> yellow input of LTX Inpaint Still. Leave green empty:
+-- the output's alpha is the mask (1 is the area to fill). Set the canvas size, then the picture's
+-- size and position on it.
+-- v1.01: one output, carrying the mask in its alpha. New Filter choice for resizing, Lanczos by default.
+{
+	Tools = ordered() {
+		cvt_LTXOutpaintCanvas = MacroOperator {
+			CtrlWZoom = false,
+			CustomData = {
+				HelpPage = "https://creativevideotips.com",
+				Credit = "Created by Chadwick / Creative Video Tips - creativevideotips.com. Part of LTX Inpaint Still, MPL 2.0.",
+			},
+			Inputs = ordered() {
+				Comments = Input { Value = "Connect to the yellow input of LTX Inpaint Still and leave green empty: this node's alpha is the mask. Created by Chadwick / Creative Video Tips - creativevideotips.com. Part of LTX Inpaint Still, MPL 2.0.", },
+				MainInput1 = InstanceInput {
+					SourceOp = "PictureSize",
+					Source = "Input",
+					Name = "Image",
+				},
+				CanvasWidth = InstanceInput {
+					SourceOp = "CanvasWhite",
+					Source = "Width",
+					Name = "Canvas Width",
+					Default = 1080,
+				},
+				CanvasHeight = InstanceInput {
+					SourceOp = "CanvasWhite",
+					Source = "Height",
+					Name = "Canvas Height",
+					Default = 1920,
+				},
+				PictureScale = InstanceInput {
+					SourceOp = "PictureSize",
+					Source = "XSize",
+					Name = "Picture Size",
+					Default = 1,
+				},
+				PictureFilter = InstanceInput {
+					SourceOp = "FilterHolder",
+					Source = "FilterMethod",
+					Name = "Filter",
+					Default = 8,
+				},
+				PicturePosition = InstanceInput {
+					SourceOp = "PositionHolder",
+					Source = "Center",
+					Name = "Picture Position",
+				},
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput {
+					SourceOp = "MaskInAlpha",
+					Source = "Output",
+					Name = "Output",
+				},
+			},
+			ViewInfo = GroupInfo {
+				Pos = { 0, 0 },
+			},
+			Tools = ordered() {
+				PictureSize = Scale {
+					CtrlWZoom = false,
+					Inputs = {
+						XSize = Input { Value = 1, },
+						PixelAspect = Input { Value = { 1, 1 }, },
+						-- A resampling filter changes the picture even at size 1. Nearest doesn't, so
+						-- the picture stays exact there, and only a real resize uses the chosen filter.
+						FilterMethod = Input {
+							Value = 0,
+							Expression = "iif(PictureSize.XSize == 1, 0, FilterHolder.FilterMethod)",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 0 } },
+				},
+				-- Only holds the Filter control. Its output goes nowhere.
+				FilterHolder = Scale {
+					Inputs = {
+						FilterMethod = Input { Value = 8, },
+						Input = Input {
+							SourceOp = "CanvasWhite",
+							Source = "Output",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, -66 } },
+				},
+				-- Only holds the Picture Position control. Its output goes nowhere: the two Crops read it
+				-- and move by whole pixels, so the picture isn't resampled and the mask's edge is hard.
+				PositionHolder = Transform {
+					Inputs = {
+						Center = Input { Value = { 0.5, 0.5 }, },
+						Input = Input {
+							SourceOp = "CanvasWhite",
+							Source = "Output",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, -33 } },
+				},
+				PictureCanvas = Crop {
+					Inputs = {
+						XOffset = Input {
+							Value = 0,
+							Expression = "floor(PictureCanvas.Input.OriginalWidth / 2 - PositionHolder.Center.X * CanvasWhite.Width + 0.5)",
+						},
+						YOffset = Input {
+							Value = 0,
+							Expression = "floor(PictureCanvas.Input.OriginalHeight / 2 - PositionHolder.Center.Y * CanvasWhite.Height + 0.5)",
+						},
+						XSize = Input {
+							Value = 1080,
+							Expression = "CanvasWhite.Width",
+						},
+						YSize = Input {
+							Value = 1920,
+							Expression = "CanvasWhite.Height",
+						},
+						Input = Input {
+							SourceOp = "PictureSize",
+							Source = "Output",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 110, 0 } },
+				},
+				CanvasWhite = Background {
+					Inputs = {
+						GlobalOut = Input { Value = 1000000, },
+						Width = Input { Value = 1080, },
+						Height = Input { Value = 1920, },
+						UseFrameFormatSettings = Input { Value = 0, },
+						Depth = Input { Value = 4, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						TopLeftRed = Input { Value = 1, },
+						TopLeftGreen = Input { Value = 1, },
+						TopLeftBlue = Input { Value = 1, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 66 } },
+				},
+				PictureBlack = Background {
+					Inputs = {
+						GlobalOut = Input { Value = 1000000, },
+						Width = Input {
+							Value = 1920,
+							Expression = "PictureCanvas.Input.OriginalWidth",
+						},
+						Height = Input {
+							Value = 1080,
+							Expression = "PictureCanvas.Input.OriginalHeight",
+						},
+						UseFrameFormatSettings = Input { Value = 0, },
+						Depth = Input { Value = 4, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 0, 99 } },
+				},
+				CanvasBlack = Background {
+					Inputs = {
+						GlobalOut = Input { Value = 1000000, },
+						Width = Input {
+							Value = 1080,
+							Expression = "CanvasWhite.Width",
+						},
+						Height = Input {
+							Value = 1920,
+							Expression = "CanvasWhite.Height",
+						},
+						UseFrameFormatSettings = Input { Value = 0, },
+						Depth = Input { Value = 4, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 110, -33 } },
+				},
+				-- A Crop's data stops at the picture, whatever its canvas. Over a full-canvas
+				-- background, the output really is the canvas's size, as the plugin needs.
+				PictureOverBlack = Merge {
+					Inputs = {
+						Background = Input {
+							SourceOp = "CanvasBlack",
+							Source = "Output",
+						},
+						Foreground = Input {
+							SourceOp = "PictureCanvas",
+							Source = "Output",
+						},
+						PerformDepthMerge = Input { Value = 0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 220, 0 } },
+				},
+				-- The picture's colour, with the mask as its alpha: 1 is the area to fill. LTX Inpaint Still
+				-- uses the picture's alpha as the mask when its green input is empty.
+				MaskInAlpha = ChannelBoolean {
+					Inputs = {
+						ToRed = Input { Value = 5, },
+						ToGreen = Input { Value = 6, },
+						ToBlue = Input { Value = 7, },
+						ToAlpha = Input { Value = 0, },
+						Background = Input {
+							SourceOp = "PictureOverBlack",
+							Source = "Output",
+						},
+						Foreground = Input {
+							SourceOp = "MaskMerge",
+							Source = "Output",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 330, 33 } },
+				},
+				MaskCanvas = Crop {
+					Inputs = {
+						XOffset = Input {
+							Value = 0,
+							Expression = "PictureCanvas.XOffset",
+						},
+						YOffset = Input {
+							Value = 0,
+							Expression = "PictureCanvas.YOffset",
+						},
+						XSize = Input {
+							Value = 1080,
+							Expression = "CanvasWhite.Width",
+						},
+						YSize = Input {
+							Value = 1920,
+							Expression = "CanvasWhite.Height",
+						},
+						Input = Input {
+							SourceOp = "PictureBlack",
+							Source = "Output",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 110, 99 } },
+				},
+				MaskMerge = Merge {
+					Inputs = {
+						Background = Input {
+							SourceOp = "CanvasWhite",
+							Source = "Output",
+						},
+						Foreground = Input {
+							SourceOp = "MaskCanvas",
+							Source = "Output",
+						},
+						PerformDepthMerge = Input { Value = 0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 110, 66 } },
+				},
+			},
+		},
+	},
+	ActiveTool = "cvt_LTXOutpaintCanvas",
+}

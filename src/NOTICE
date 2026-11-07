@@ -1,0 +1,21 @@
+LTX Alpha Gen OFX for Flame
+Copyright (c) 2026 Jan Klier
+
+Donated by Jan Klier to Logik.tv (logik.tv), which maintains the project.
+
+This project is licensed under the Mozilla Public License, version 2.0 (see LICENSE).
+
+Third-party code keeps its own licence:
+- OpenFX headers and Support library in third_party/openfx: BSD-3-Clause (see
+  third_party/openfx/VENDORED.txt).
+
+The LTX model code and weights are not part of this repository; they are downloaded by each user
+under the LTX-2.x Community License.
+
+DaVinci Resolve and Fusion Studio port (Apple Silicon): Chadwick, Creative Video Tips
+(creativevideotips.com), 2026, under the same Mozilla Public License 2.0. The changes from the
+Flame version are listed in CVT_PORT.md.
+
+LTX Inpaint Still (Chadwick, Creative Video Tips, 2026) builds on that port under the same licence; see
+CVT_PORT.md. The plugin includes OpenEXR (BSD-3-Clause, Contributors to the OpenEXR Project), Imath
+(BSD-3-Clause) and libdeflate (MIT), fetched at build time, and installs the openexr Python package on first use.
