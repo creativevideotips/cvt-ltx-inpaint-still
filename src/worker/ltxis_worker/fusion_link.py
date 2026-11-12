@@ -186,6 +186,34 @@ def requested_folder(host: str, folder: str) -> str:
     return folder
 
 
+def unreachable(folder: str, users: str = "/Users", volumes: str = "/Volumes") -> str:
+    """Why a folder can never be made on this Mac, or "" if it can (or if only trying will tell).
+    A project or comp set up on another Mac keeps that Mac's paths: a home folder of a user who isn't
+    on this Mac, or a drive that isn't mounted. macOS refuses to make either, with a bare "Permission
+    denied" or "No such file", which says nothing about the real cause."""
+    folder = os.path.normpath(os.path.expanduser(folder))
+    for root, what in ((users, "home folder"), (volumes, "drive")):
+        prefix = os.path.normpath(root) + os.sep
+        if not folder.startswith(prefix):
+            continue
+        top = folder[len(prefix):].split(os.sep)[0]
+        if top and not os.path.isdir(os.path.join(root, top)):
+            if what == "drive":
+                return f"the drive {top} isn't mounted"
+            return f"{os.path.join(root, top)} is the home folder of a user who isn't on this Mac"
+    return ""
+
+
+def fix_for(folder: str) -> str:
+    """What to change, in the words of the setting the user can see."""
+    if folder.startswith("ProjectMedia:"):
+        return ("The project was probably set up on another Mac: change Project media location in Project "
+                "Settings > General Options > Working Folders, or choose a Stills Folder")
+    if folder.startswith("Comp:"):
+        return "The comp was probably saved on another Mac: save it on this one, or choose a Stills Folder"
+    return "Choose a Stills Folder on this Mac"
+
+
 def choose_folder(requested: str, mapped: str, comp_saved: bool = True) -> tuple[str, bool]:
     """(folder to save in, True if it is the one asked for). Only a real absolute path counts, and Comp:
     only for a saved comp: otherwise it maps to a general folder, which looks like an answer but isn't."""
@@ -210,7 +238,13 @@ def locate(host: str, node_id: str, folder: str, fuscript: str | None = None) ->
     stem = os.path.splitext(os.path.basename(comp_file or clip))[0]
     if not problem and not wanted:
         problem = f"{folder} has no location here" + (": save the comp first" if folder.startswith("Comp:") else "")
-    return {"folder": target, "wanted": wanted, "comp_name": stem, "problem": problem, "fuscript": fuscript}
+    why = unreachable(target) if wanted else ""
+    if why:
+        # Found now, before the slow part, so the stills still get saved and loaded, in the fallback folder.
+        problem = f"{target} can't be made: {why}. {fix_for(folder)}"
+        target, wanted = os.path.expanduser(FALLBACK_FOLDER), False
+    return {"folder": target, "wanted": wanted, "comp_name": stem, "problem": problem, "fuscript": fuscript,
+            "requested": folder}
 
 
 def deliver(where: dict, host: str, node_id: str, paths: list[str], convert=None,  # noqa: ANN001
@@ -245,7 +279,9 @@ def deliver(where: dict, host: str, node_id: str, paths: list[str], convert=None
         kept = saved + paths[len(saved):]
         for path in paths[:len(saved)]:
             os.unlink(path)
-        return kept, f"Could not save to {folder}: {exc}. Unsaved stills stay in the plugin's cache."
+        why = unreachable(folder)
+        reason = f"{why}. {fix_for(where.get('requested', ''))}" if why else str(exc)
+        return kept, f"Could not save to {folder}: {reason}. Unsaved stills stay in the plugin's cache."
     for path in paths:
         os.unlink(path)
     if not where["wanted"]:

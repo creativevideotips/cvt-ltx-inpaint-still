@@ -17,7 +17,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/build"
-PORT_VERSION="cvt1.29"   # the version shown on the node, and (as 1.00) the plugin version hosts store
+PORT_VERSION="cvt1.30"   # the version shown on the node, and (as 1.00) the plugin version hosts store
 LTX_PYTHON="$HOME/LTX-2.5/runtime/ltx2/.venv/bin/python"
 
 command -v cmake >/dev/null || { echo "cmake is missing: brew install cmake" >&2; exit 1; }

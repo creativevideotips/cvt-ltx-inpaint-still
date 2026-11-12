@@ -6,11 +6,11 @@ From [Creative Video Tips](https://creativevideotips.com), created by Chadwick. 
 
 ## Download
 
-### [Download the installer: LTXInpaintStill-1.29.pkg](https://github.com/creativevideotips/cvt-ltx-inpaint-still/releases/download/v1.29/LTXInpaintStill-1.29.pkg)
+### [Download the installer: LTXInpaintStill-1.30.pkg](https://github.com/creativevideotips/cvt-ltx-inpaint-still/releases/download/v1.30/LTXInpaintStill-1.30.pkg)
 
-### [Download the guide (PDF)](https://github.com/creativevideotips/cvt-ltx-inpaint-still/releases/download/v1.29/LTX_Inpaint_Still_Guide.pdf)
+### [Download the guide (PDF)](https://github.com/creativevideotips/cvt-ltx-inpaint-still/releases/download/v1.30/LTX_Inpaint_Still_Guide.pdf)
 
-### [Download the outpainting macro](https://github.com/creativevideotips/cvt-ltx-inpaint-still/releases/download/v1.29/cvt_LTXOutpaintCanvas.setting)
+### [Download the outpainting macro](https://github.com/creativevideotips/cvt-ltx-inpaint-still/releases/download/v1.30/cvt_LTXOutpaintCanvas.setting)
 
 ![A wipe across a stairs shot: the man on the left, and the still with him removed on the right, with the mask drawn around him](ltx_inpaint_still_wipe.jpg)
 

@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import numpy as np  # noqa: E402
@@ -217,6 +218,36 @@ class FusionLink(unittest.TestCase):
             folder, note = still_open_folder.prepare("resolve", "abc", wanted, fuscript="")
             self.assertEqual((folder, note), (wanted, ""))
             self.assertTrue(os.path.isdir(wanted))
+
+    def test_another_macs_home_folder_or_a_missing_drive_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            users, volumes = os.path.join(tmp, "Users"), os.path.join(tmp, "Volumes")
+            os.makedirs(os.path.join(users, "me"))
+            os.makedirs(os.path.join(volumes, "here"))
+
+            def why(folder):
+                return fusion_link.unreachable(folder, users, volumes)
+
+            self.assertIn("isn't on this Mac", why(os.path.join(users, "other", "Media", "VFX")))
+            self.assertIn("other", why(os.path.join(users, "other", "Media", "VFX")))
+            self.assertEqual(why(os.path.join(users, "me", "not", "made", "yet")), "")
+            self.assertEqual(why(os.path.join(volumes, "gone", "x")), "the drive gone isn't mounted")
+            self.assertEqual(why(os.path.join(volumes, "here", "new")), "")
+            self.assertEqual(why(os.path.join(tmp, "elsewhere")), "")
+
+    def test_a_project_from_another_mac_saves_to_the_fallback_and_says_what_to_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            users = os.path.join(tmp, "Users")
+            os.makedirs(users)
+            missing = os.path.join(users, "other", "Media", "VFX", "stills")
+            real = fusion_link.unreachable
+            with mock.patch.object(fusion_link, "unreachable", lambda f: real(f, users, os.path.join(tmp, "V"))), \
+                 mock.patch.object(fusion_link, "_run", lambda *a: ([f"MAPPED {missing}"], "")):
+                where = fusion_link.locate("resolve", "abc", "Comp:/stills/", fuscript="x")
+            self.assertFalse(where["wanted"])
+            self.assertTrue(where["folder"].endswith("LTX Inpaint Stills"))
+            self.assertIn("isn't on this Mac", where["problem"])
+            self.assertIn("Project media location", where["problem"])
 
     @unittest.skipUnless(fusion_link.find_fuscript("fusion") or fusion_link.find_fuscript("resolve"), "needs fuscript")
     def test_a_new_batch_never_overlaps_tools_that_were_dragged_off_the_grid(self):

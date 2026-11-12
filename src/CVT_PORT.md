@@ -33,6 +33,10 @@ Tests that led to this design are in `../cvtLTXInpaintTest/ltx_inpaint_test.py`.
 
 ## Versions
 
+- **cvt1.30:** a Stills Folder that can't exist on this Mac, such as a project media location in another Mac's home
+  folder or on a drive that isn't mounted, is caught before the job: the stills go to `~/Documents/LTX Inpaint Stills`
+  with their Loaders, and the message says why and what to change (Project media location in Project Settings, or
+  the Stills Folder). Before, they stayed in the cache with only "Permission denied".
 - **cvt1.29:** a Model Folder that was set up and has since been deleted is no longer offered from the saved settings: the field goes
   back to `~/LTX-2.5`. A folder on a drive that isn't mounted stays, since the drive may come back.
 
