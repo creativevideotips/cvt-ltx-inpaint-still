@@ -20,7 +20,7 @@ From [Creative Video Tips](https://creativevideotips.com), created by Chadwick. 
 - **Fusion only.** Fusion Studio or Resolve's Fusion page. It doesn't work on the Edit or Color pages.
 - **Mac with Apple Silicon only.** There is no Windows, Linux or NVIDIA version.
 - **macOS 15 (Sequoia) or later.** The installer will not install on an older macOS.
-- **128 GB of RAM recommended; not recommended on 64 GB or less.** One HD still reserves about 46 GB in Rec.709 and about 56 GB in ACEScg, and on a 64 GB Mac macOS leaves less than the model needs.
+- **128 GB of RAM recommended; not recommended on 64 GB or less.** One HD still reserves about 35 GB in Rec.709 and about 44 GB in ACEScg, close to all that macOS lets the graphics use on a 64 GB Mac.
 - **About 80 GB of disk space** for the models, or about 125 GB on M1 and M2 Macs, where Setup adds a faster copy of the main model.
 - **It needs Apple's Command Line Tools,** a free download from Apple. You don't need to install Python: Setup brings its own.
 
@@ -73,7 +73,7 @@ The token is used for that download and never stored. Every file is checked agai
 
 Choose **ACEScg** or **Linear sRGB** and the stills come back in that space, with real values above 1.0 in the fill. Beyond the fade around the fill, every pixel is your original.
 
-**HDR takes longer than Rec.709:** about 72 seconds a still against 52 on an M5 Max at HD.
+**HDR takes longer than Rec.709:** about 67 seconds a still against 45 on an M5 Max at HD.
 
 ### Alpha
 
@@ -89,11 +89,11 @@ Measured on an M5 Max with 128 GB, HD, ACEScg:
 
 | Variations | First run (new prompt, model not loaded) | Model still loaded |
 |---|---|---|
-| 1 | about 2:15 | about 1:15 |
-| 3 | about 4:40 | about 3:40 |
-| 6 | about 8:00 | about 7:15 |
+| 1 | about 2:10 | about 1:10 |
+| 3 | about 4:25 | about 3:25 |
+| 6 | about 7:30 | about 6:45 |
 
-Only the 6-variation first run was timed whole; the others are worked out from it. The model stays loaded for 5 minutes after a job, and **Release Memory** unloads it right away.
+Only the 6-variation first run was timed whole, on 1.30; the others are worked out from it, less the 5 seconds or so a still that 1.31 saves. The model stays loaded for 5 minutes after a job, and **Release Memory** unloads it right away.
 
 ## What's where
 
