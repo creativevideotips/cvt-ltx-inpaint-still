@@ -30,6 +30,9 @@ LoRA 1.0. Injections into the pinned LTX-2 code (commit 9ec55f9):
     (upstream "builds on each call, frees on exit": 6.6 s per chunk at HD fp8). Safe because
     the single-GPU Builder.build ignores the per-call video_tools kwarg (ARG002);
   - pipeline.audio_decoder = None: video-only chunks (chunks/operators.py:285), saving ~2 s/chunk;
+  - CVT port (cvt1.50), injection 8: a video-only transformer (LTXVideoOnlyModelConfigurator, the
+    audio weights never read) and chunks without an audio latent, so the sound track LTX-2.5
+    denoises beside the picture is no longer computed (~12 GB less memory). LTXAG_KEEP_AUDIO=1: as before;
   - CVT port (cvt1.32), injection 7: helpers.activation_budget_bytes -> a fixed budget per Mac
     (DECODE_BUDGET_FRACTION of the Metal working set). The DiffVAE decode picks its tiles from the
     free memory at each chunk's decode (helpers.tiling_config_for_vae), and at HD the tile layout
@@ -65,6 +68,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
 import json
 import os
 import socket
@@ -160,6 +164,8 @@ class MemoryFrameSource:
 # cvt1.32: LTXAG_HASH_STAGES=1 logs a fingerprint of each chunk's data after each stage (reference
 # latent, latent into the decoder, matte), to find where two runs of the same frames part ways.
 HASH_STAGES = os.environ.get("LTXAG_HASH_STAGES") == "1"
+# cvt1.50: the transformer without its audio branch (injection 8); LTXAG_KEEP_AUDIO=1 for A/B tests.
+VIDEO_ONLY = os.environ.get("LTXAG_KEEP_AUDIO") != "1"
 _stage_hashes: list[str] = []
 
 
@@ -327,6 +333,8 @@ class Engine:
             spatial_upsampler_path=paths["upsampler"],
             loras=[LoraPathStrengthAndSDOps(paths["lora"], 1.0, LTXV_LORA_COMFY_RENAMING_MAP)],
             quantization=quant)
+        if VIDEO_ONLY:  # injection 8 (cvt1.50)
+            self._make_video_only(ic_lora, transformer_file, emit)
         if self.fp16:
             self.pipeline.dtype = torch.float16  # latents, noise and reference frames (ic_lora.py:312)
             self.pipeline._diffusion_stage._dtype = torch.float16  # the denoising state (blocks.py:565)
@@ -384,6 +392,38 @@ class Engine:
         self.accel.empty_cache()
         emit("info", f"engine ready in {time.time() - t0:.1f} s (precision {precision}, "
                      f"transformer {'resident' if keep_transformer else 'rebuilt per chunk'})")
+
+    def _make_video_only(self, ic_lora, transformer_file: str, emit) -> None:  # noqa: ANN001
+        """cvt1.50, injection 8: the transformer without its audio branch. LTX-2.5 denoises a sound
+        track alongside the picture (audio blocks plus audio<->video cross-attention, ~12 GB of the
+        42 GB bf16 file); the matte never uses it. Upstream's LTXVideoOnlyModelConfigurator builds
+        the video half, an SDOps limited to its keys keeps the audio weights from ever being read
+        from disk, and chunks carry no audio latent (chunks/operators.py: audio=None -> no audio
+        modality). LTXAG_KEEP_AUDIO=1 keeps the full model, for A/B tests."""
+        import torch
+
+        from ltx_core.loader.sft_loader import SafetensorsModelStateDictLoader
+        from ltx_core.model.transformer import LTXV_MODEL_COMFY_RENAMING_MAP, LTXVideoOnlyModelConfigurator
+        from ltx_pipelines.utils import blocks
+
+        with torch.device("meta"):
+            shell = LTXVideoOnlyModelConfigurator.from_metadata(SafetensorsModelStateDictLoader().metadata(transformer_file))
+        keys = frozenset(shell.state_dict().keys())
+        del shell
+        self.pipeline._diffusion_stage = blocks.DiffusionStage.from_checkpoint(
+            transformer_file, self.pipeline.dtype, self.pipeline.device,
+            model_configurator=LTXVideoOnlyModelConfigurator,
+            model_sd_ops=LTXV_MODEL_COMFY_RENAMING_MAP.with_additional_allowed_keys(keys))
+        if not getattr(ic_lora, "_ltxag_video_only", False):
+            original = ic_lora.generate_uniform_chunks
+
+            def video_chunks(*args, **kwargs):  # noqa: ANN002, ANN003
+                for chunk in original(*args, **kwargs):
+                    yield dataclasses.replace(chunk, audio=None, audio_context=None)
+
+            ic_lora.generate_uniform_chunks = video_chunks
+            ic_lora._ltxag_video_only = True
+        emit("info", f"video-only transformer ({len(keys)} tensors; the audio branch is not loaded)")
 
     def _fix_decode_budget(self, emit) -> None:
         """cvt1.32: decode tiles from a fixed budget, so a clip's mattes repeat between runs."""

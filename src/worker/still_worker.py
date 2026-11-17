@@ -117,7 +117,10 @@ class Model:
                 target=target, context=VideoAudio(video=context.video_encoding, audio=context.audio_encoding),
                 device=p.device, dtype=p.dtype, config=ChunkConfig(chunk_pixel_frames=1, next_video_carry_frames=0),
                 video_scale_factors=p._diffusion_stage.video_scale_factors)
-            seeded = (replace(chunk, video=latent) for chunk in chunks)
+            if ltx_worker.VIDEO_ONLY:  # cvt1.31: no audio latent for the video-only transformer (injection 8)
+                seeded = (replace(chunk, video=latent, audio=None, audio_context=None) for chunk in chunks)
+            else:
+                seeded = (replace(chunk, video=latent) for chunk in chunks)
             sigmas = torch.tensor(STAGE_2_SIGMAS, dtype=torch.float32, device=p.device)
             denoised = denoise_chunks(seeded, p._diffusion_stage.with_loras(p._loras), sigmas=sigmas,
                                       noiser=GaussianNoiser(generator=generator), fps=FRAME_RATE)

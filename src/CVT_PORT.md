@@ -33,6 +33,9 @@ Tests that led to this design are in `../cvtLTXInpaintTest/ltx_inpaint_test.py`.
 
 ## Versions
 
+- **cvt1.31:** the model is loaded without the sound track it was made to generate beside the picture, as in Alpha Gen
+  cvt1.50: less memory and a faster Process, with the same stills. `worker/ltx_worker.py` is Alpha Gen cvt1.50's again,
+  and Structure's second pass leaves the sound out too. `LTXAG_KEEP_AUDIO=1` loads the full model, for comparisons.
 - **cvt1.30:** a Stills Folder that can't exist on this Mac, such as a project media location in another Mac's home
   folder or on a drive that isn't mounted, is caught before the job: the stills go to `~/Documents/LTX Inpaint Stills`
   with their Loaders, and the message says why and what to change (Project media location in Project Settings, or
